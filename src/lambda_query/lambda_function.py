@@ -1,5 +1,6 @@
 import json
 import logging
+import boto3
 import traceback
 
 logger = logging.getLogger()
@@ -46,12 +47,41 @@ def handle_get(path, query_params):
     }
 
 def handle_post(path, body):
-    # Implement your POST logic here
-    return {
-        "message": "POST request processed",
-        "path": path,
-        "body": body
-    }
+    try:
+        # Create a boto3 client for EC2
+        ec2_client = boto3.client('ec2')
+
+        # Prepare the Spot Fleet request
+        spot_fleet_request = {
+            "SpotFleetRequestConfig": {
+                "AllocationStrategy": body.get("AllocationStrategy", "lowestPrice"),
+                "TargetCapacity": body["TargetCapacity"],
+                "IamFleetRole": body["IamFleetRole"],
+                "LaunchSpecifications": body["LaunchSpecifications"],
+                "SpotPrice": body.get("SpotPrice", "0.03"),  # Default to $0.03 if not specified
+                "TerminateInstancesWithExpiration": True,
+                "Type": "request",
+                "ReplaceUnhealthyInstances": False,
+                "InstanceInterruptionBehavior": "terminate"
+            }
+        }
+
+        # Create the Spot Fleet request
+        response = ec2_client.request_spot_fleet(
+            SpotFleetRequestConfig=spot_fleet_request["SpotFleetRequestConfig"]
+        )
+
+        return {
+            "message": "Spot Fleet request created successfully",
+            "SpotFleetRequestId": response["SpotFleetRequestId"]
+        }
+
+    except Exception as e:
+        logger.error(f"Error creating Spot Fleet: {str(e)}")
+        return {
+            "message": "Error creating Spot Fleet",
+            "error": str(e)
+        }
 
 def handle_delete(path, query_params):
     # Implement your DELETE logic here
