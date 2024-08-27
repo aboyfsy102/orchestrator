@@ -3,14 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 )
 
-func handlePost(ctx context.Context, cwl *cloudwatchlogs.Client, queryParams map[string]string, body map[string]interface{}) (events.ALBTargetGroupResponse, error) {
-	// Process POST request
-	response := fmt.Sprintf("Received POST request with query parameters: %v and body: %v", queryParams, body)
-	logToCloudWatch(ctx, cwl, response)
+func handlePost(ctx context.Context, queryParams map[string]string, body map[string]interface{}) (events.ALBTargetGroupResponse, error) {
+	log.Printf("Handling POST request with query parameters: %v and body: %v", queryParams, body)
+
+	// Process POST request logic here
+	response := fmt.Sprintf("Processed POST request with parameters: %v and body: %v", queryParams, body)
+
 	return successResponse(response)
 }

@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"log"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 )
 
-func handleDelete(ctx context.Context, cwl *cloudwatchlogs.Client, queryParams map[string]string, body map[string]interface{}) (events.ALBTargetGroupResponse, error) {
-	// Implement DELETE logic here
-	logToCloudWatch(ctx, cwl, "DELETE request received")
-	return successResponse("DELETE operation not implemented")
+func handleDelete(ctx context.Context, queryParams map[string]string, body map[string]interface{}) (events.ALBTargetGroupResponse, error) {
+	log.Printf("Handling DELETE request with query parameters: %v and body: %v", queryParams, body)
+
+	// Process DELETE request logic here
+	response := fmt.Sprintf("Processed DELETE request with parameters: %v and body: %v", queryParams, body)
+
+	return successResponse(response)
 }
