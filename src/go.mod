@@ -7,6 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.30.4
 	github.com/aws/aws-sdk-go-v2/config v1.27.31
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.37.5
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.176.0
 )
 
 require (

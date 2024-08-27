@@ -10,7 +10,22 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 )
+
+var ec2Client *ec2.Client
+
+func init() {
+
+	// Create launch template
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return errorResponse(500, "Failed to load AWS config")
+	}
+
+	ec2Client = ec2.NewFromConfig(cfg)
+}
 
 func handleRequest(ctx context.Context, request events.ALBTargetGroupRequest) (events.ALBTargetGroupResponse, error) {
 	// Log the incoming request
