@@ -4,7 +4,7 @@ locals {
 
 # IAM role for the Lambda function
 resource "aws_iam_role" "describe" {
-  name        = "${var.project}-describe"
+  name        = "${var.project}-${data.aws_region.current.name}-describe"
   description = "Role for the ${var.project}-describe lambda function"
 
   assume_role_policy = jsonencode({
@@ -22,7 +22,7 @@ resource "aws_iam_role" "describe" {
 }
 
 # CloudWatch Log Group for Lambda function
-resource "aws_cloudwatch_log_group" "lambda_create_logs" {
+resource "aws_cloudwatch_log_group" "lambda_describe_logs" {
   name              = "/aws/lambda/${local.lambda_function_name_describe}"
   retention_in_days = 1
 }
@@ -46,7 +46,7 @@ resource "aws_lambda_function" "lambda_describe" {
     }
   }
 
-  depends_on = [aws_cloudwatch_log_group.lambda_create_logs]
+  depends_on = [aws_cloudwatch_log_group.lambda_describe_logs]
 }
 
 # IAM policy for the Lambda function
