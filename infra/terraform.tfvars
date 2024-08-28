@@ -1,1 +1,1 @@
-project = "dev-app-v3"
+project = "dev3"

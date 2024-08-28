@@ -1,3 +1,3 @@
 variable "project" {
-  default = "dev-app"
+  default = ""
 }

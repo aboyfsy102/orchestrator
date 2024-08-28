@@ -31,14 +31,14 @@ resource "aws_cloudwatch_log_group" "lambda_create_logs" {
 # Define the Lambda function
 resource "aws_lambda_function" "lambda_describe" {
   description   = "${var.project}: lambda function to process CREATE requests to launch EC2 instances"
-  filename      = "../dist/lambda_describe.zip"
+  filename      = "../dist/lambda_describe_http.zip"
   function_name = local.lambda_function_name_describe
   role          = aws_iam_role.describe.arn
   handler       = "bootstrap"
   runtime       = "provided.al2023"
   memory_size   = 1024
 
-  source_code_hash = filebase64sha256("../dist/lambda_describe.zip")
+  source_code_hash = filebase64sha256("../dist/lambda_describe_http.zip")
 
   environment {
     variables = {

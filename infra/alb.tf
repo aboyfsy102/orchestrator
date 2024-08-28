@@ -1,5 +1,5 @@
 resource "aws_lb" "alb" {
-  name               = trim(lower("${var.project}-${data.aws_region.current.name}-alb"), "-")
+  name               = trim(lower("${var.project}-alb"), "-")
   load_balancer_type = "application"
   security_groups    = [aws_security_group.sg_alb.id]
   subnets            = data.aws_subnets.all.ids
@@ -65,7 +65,7 @@ resource "aws_lb_listener_rule" "describe_rule" {
 }
 
 resource "aws_lb_target_group" "lambda_describe_tg" {
-  name        = "${var.project}-${data.aws_region.current.name}-lambda-tg"
+  name        = "${var.project}-lambda-tg"
   target_type = "lambda"
 }
 
