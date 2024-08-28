@@ -4,3 +4,5 @@ infra/terraform.tfstate.backup
 infra/.terraform/*
 
 dist/*.zip
+
+src/deprecated/*
