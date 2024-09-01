@@ -73,7 +73,7 @@ func TestHandleRequest(t *testing.T) {
 			ec2Client = mockClient
 
 			// Then call handleRequest as before
-			response, err := handleRequest(context.Background(), tt.request)
+			response, err := handleRequest(context.Background(), tt.request, mockClient)
 
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedStatus, response.StatusCode)

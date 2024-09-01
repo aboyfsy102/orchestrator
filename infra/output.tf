@@ -12,8 +12,3 @@ output "alb_https_url" {
   description = "The HTTPS URL of the Application Load Balancer"
   value       = "https://${aws_lb.alb.dns_name}"
 }
-
-output "order_endpoint" {
-  description = "The HTTPS URL for the /order endpoint"
-  value       = "https://${aws_lb.alb.dns_name}/order"
-}
