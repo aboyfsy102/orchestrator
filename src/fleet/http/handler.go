@@ -2,84 +2,106 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"log"
+	"net/http"
+	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/jackc/pgx/v4"
 )
 
-// EC2ClientAPI defines the interface for EC2 client methods we're using
-type EC2ClientAPI interface {
-	DescribeInstances(ctx context.Context, params *ec2.DescribeInstancesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeInstancesOutput, error)
-}
+var (
+	ec2Client   *ec2.Client
+	pgsqlClient *pgx.Conn
+)
 
-func handleRequest(ctx context.Context, request events.ALBTargetGroupRequest, client EC2ClientAPI) (events.ALBTargetGroupResponse, error) {
-	// Get Lambda context for request ID
-	lc, _ := lambdacontext.FromContext(ctx)
-	requestID := lc.AwsRequestID
+func init() {
 
-	log.Printf("Received request: Method=%s, Path=%s", request.HTTPMethod, request.Path)
+	// Create launch template
+	cfg, err := config.LoadDefaultConfig(context.Background())
+	if err != nil {
+		log.Printf("Failed to load AWS config: %v", err)
+	}
 
-	switch request.HTTPMethod {
-	case "GET":
-		log.Println("Handling GET request")
-		return handleGet(ctx, client, requestID)
-	case "POST":
-		log.Println("Handling POST request")
-		return handlePost(ctx, client, requestID)
-	case "DELETE":
-		log.Println("Handling DELETE request")
-		return handleDelete(ctx, client, requestID)
-	default:
-		log.Printf("Unsupported method: %s", request.HTTPMethod)
-		return events.ALBTargetGroupResponse{
-			StatusCode: 405,
-			Body:       `{"error": "Method not allowed"}`,
-		}, nil
+	ec2Client = ec2.NewFromConfig(cfg)
+
+	// Initialize PostgreSQL client
+	dbURL := os.Getenv("DATABASE_URL")
+	dbUsername := os.Getenv("DATABASE_USERNAME")
+	dbPassword := os.Getenv("DATABASE_PASSWORD")
+
+	connString := fmt.Sprintf("%s?user=%s&password=%s", dbURL, dbUsername, dbPassword)
+	conn, err := pgx.Connect(context.Background(), connString)
+	if err != nil {
+		log.Printf("Failed to connect to PostgreSQL: %v", err)
+	} else {
+		pgsqlClient = conn
 	}
 }
 
-func handleGet(ctx context.Context, client EC2ClientAPI, requestID string) (events.ALBTargetGroupResponse, error) {
-	// TODO: Implement POST request handling
+func handleRequest(ctx context.Context, request events.ALBTargetGroupRequest) (events.ALBTargetGroupResponse, error) {
+	// Log the incoming request
+	log.Printf("Received request: %+v", request)
+
+	// Parse query parameters
+	queryParams := request.QueryStringParameters
+
+	// Process the request based on the HTTP method
+	switch request.HTTPMethod {
+	case "GET":
+		return handleGet(ctx, queryParams)
+	case "POST":
+		// Handle request body
+		var body map[string]interface{}
+		if request.IsBase64Encoded {
+			decodedBody, err := base64.StdEncoding.DecodeString(request.Body)
+			if err != nil {
+				log.Printf("Error decoding base64 body: %v", err)
+				return errorResponse(http.StatusBadRequest, "Invalid base64 encoded body")
+			}
+			err = json.Unmarshal(decodedBody, &body)
+		} else {
+			err := json.Unmarshal([]byte(request.Body), &body)
+			if err != nil {
+				log.Printf("Error unmarshalling JSON body: %v", err)
+				return errorResponse(http.StatusBadRequest, "Invalid JSON body")
+			}
+		}
+		return handlePost(ctx, queryParams, body)
+	case "DELETE":
+		return handleDelete(ctx, queryParams)
+	default:
+		log.Printf("Method not allowed")
+		return errorResponse(http.StatusMethodNotAllowed, "Method not allowed")
+	}
+}
+
+func successResponse(body string) (events.ALBTargetGroupResponse, error) {
 	return events.ALBTargetGroupResponse{
-		StatusCode: 501,
-		Body:       `{"error": "Not implemented"}`,
+		StatusCode:        200,
+		StatusDescription: "200 OK",
+		Headers:           map[string]string{"Content-Type": "application/json"},
+		Body:              body,
+		IsBase64Encoded:   false,
 	}, nil
 }
 
-func handlePost(ctx context.Context, client EC2ClientAPI, requestID string) (events.ALBTargetGroupResponse, error) {
-	// TODO: Implement POST request handling
+func errorResponse(statusCode int, message string) (events.ALBTargetGroupResponse, error) {
 	return events.ALBTargetGroupResponse{
-		StatusCode: 501,
-		Body:       `{"error": "Not implemented"}`,
-	}, nil
-}
-
-func handleDelete(ctx context.Context, client EC2ClientAPI, requestID string) (events.ALBTargetGroupResponse, error) {
-	// TODO: Implement POST request handling
-	return events.ALBTargetGroupResponse{
-		StatusCode: 501,
-		Body:       `{"error": "Not implemented"}`,
+		StatusCode:        statusCode,
+		StatusDescription: fmt.Sprintf("%d %s", statusCode, http.StatusText(statusCode)),
+		Headers:           map[string]string{"Content-Type": "application/json"},
+		Body:              fmt.Sprintf(`{"error": "%s"}`, message),
+		IsBase64Encoded:   false,
 	}, nil
 }
 
 func main() {
-	log.Println("Lambda function starting")
-
-	log.Println("Initializing AWS SDK configuration")
-	cfg, err := config.LoadDefaultConfig(context.TODO())
-	if err != nil {
-		log.Fatalf("Unable to load SDK config: %v", err)
-	}
-
-	log.Println("Creating EC2 client")
-	ec2Client := ec2.NewFromConfig(cfg)
-
-	log.Println("Starting Lambda handler")
-	lambda.Start(func(ctx context.Context, request events.ALBTargetGroupRequest) (events.ALBTargetGroupResponse, error) {
-		return handleRequest(ctx, request, ec2Client)
-	})
+	lambda.Start(handleRequest)
 }
