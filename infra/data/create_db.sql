@@ -61,11 +61,11 @@ CREATE TABLE "profiles" (
     "tags" jsonb,
 );
 
--- create two users. 'j5v3-admin' and 'j5v3-report'
-CREATE USER "j5v3_admin" WITH PASSWORD 'default_t0_change_pl3ase!';
+-- create two users. 'j5v3-lambda' and 'j5v3-report'
+CREATE USER "j5v3_lambda" WITH PASSWORD 'default_t0_change_pl3ase!';
 CREATE USER "j5v3_report" WITH PASSWORD 'default_t0_change_pl3ase!';
 
 -- grant permissions to the users
-GRANT SELECT, INSERT, UPDATE ON "dev3"."orders" TO "j5v3_admin";
-GRANT SELECT ON "dev3"."orders" TO "j5v3-report";
-GRANT SELECT, INSERT, UPDATE ON "dev3"."profiles" TO "j5v3_report";
+GRANT SELECT, INSERT, UPDATE ON "dev3"."orders" TO "j5v3_lambda";
+GRANT SELECT ON "dev3"."orders" TO "j5v3_report";
+GRANT SELECT, INSERT, UPDATE ON "dev3"."profiles" TO "j5v3_lambda";

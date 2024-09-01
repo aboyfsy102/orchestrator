@@ -42,7 +42,10 @@ resource "aws_lambda_function" "lambda_fleet_http" {
 
   environment {
     variables = {
-      LOG_LEVEL = "INFO"
+      LOG_LEVEL         = "INFO"
+      DATABASE_URL      = "postgresql://${aws_db_instance.rds.username}:${aws_db_instance.rds.password}@${aws_db_instance.rds.endpoint}/${aws_db_instance.rds.db_name}?sslmode=require"
+      DATABASE_USERNAME = "j5v3_lambda"
+      DATABASE_PASSWORD = ""
     }
   }
 
