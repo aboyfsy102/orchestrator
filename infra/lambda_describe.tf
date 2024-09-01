@@ -1,11 +1,11 @@
 locals {
-  lambda_function_name_describe = "${var.project}-${data.aws_region.current.name}-lambda-describe-ec2"
+  lambda_function_name_describe_http = "${var.project}-${data.aws_region.current.name}-lambda-describe-http"
 }
 
 # IAM role for the Lambda function
-resource "aws_iam_role" "describe" {
-  name        = "${var.project}-${data.aws_region.current.name}-describe"
-  description = "Role for the ${var.project}-describe lambda function"
+resource "aws_iam_role" "describe_http" {
+  name        = "${var.project}-${data.aws_region.current.name}-describe-http"
+  description = "Role for the ${var.project}-describe-http lambda function"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -22,18 +22,18 @@ resource "aws_iam_role" "describe" {
 }
 
 # CloudWatch Log Group for Lambda function
-resource "aws_cloudwatch_log_group" "lambda_describe_logs" {
-  name              = "/aws/lambda/${local.lambda_function_name_describe}"
+resource "aws_cloudwatch_log_group" "lambda_describe_http_logs" {
+  name              = "/aws/lambda/${local.lambda_function_name_describe_http}"
   retention_in_days = 1
 }
 
 
 # Define the Lambda function
-resource "aws_lambda_function" "lambda_describe" {
+resource "aws_lambda_function" "lambda_describe_http" {
   description   = "${var.project}: lambda function to process CREATE requests to launch EC2 instances"
   filename      = "../dist/lambda_describe_http.zip"
-  function_name = local.lambda_function_name_describe
-  role          = aws_iam_role.describe.arn
+  function_name = local.lambda_function_name_describe_http
+  role          = aws_iam_role.describe_http.arn
   handler       = "bootstrap"
   runtime       = "provided.al2023"
   memory_size   = 1024
@@ -46,13 +46,13 @@ resource "aws_lambda_function" "lambda_describe" {
     }
   }
 
-  depends_on = [aws_cloudwatch_log_group.lambda_describe_logs]
+    depends_on = [aws_cloudwatch_log_group.lambda_describe_http_logs]
 }
 
 # IAM policy for the Lambda function
 resource "aws_iam_role_policy" "lambda_describe_policy" {
   name = "lambda_describe_policy"
-  role = aws_iam_role.describe.id
+  role = aws_iam_role.describe_http.id
 
   policy = jsonencode({
     Version = "2012-10-17"
