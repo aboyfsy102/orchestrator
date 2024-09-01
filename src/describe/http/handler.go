@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"j5v3/llib"
 	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 )
@@ -21,12 +22,16 @@ type EC2ClientAPI interface {
 var ec2Client EC2ClientAPI
 
 func handleRequest(ctx context.Context, request events.ALBTargetGroupRequest, client EC2ClientAPI) (events.ALBTargetGroupResponse, error) {
+	// Get Lambda context for request ID
+	lc, _ := lambdacontext.FromContext(ctx)
+	requestID := lc.AwsRequestID
+
 	log.Printf("Received request: Method=%s, Path=%s", request.HTTPMethod, request.Path)
 
 	switch request.HTTPMethod {
 	case "GET":
 		log.Println("Handling GET request")
-		return handleGet(ctx, client)
+		return handleGet(ctx, client, requestID)
 	default:
 		log.Printf("Unsupported method: %s", request.HTTPMethod)
 		return events.ALBTargetGroupResponse{
@@ -36,20 +41,12 @@ func handleRequest(ctx context.Context, request events.ALBTargetGroupRequest, cl
 	}
 }
 
-func handleGet(ctx context.Context, client EC2ClientAPI) (events.ALBTargetGroupResponse, error) {
+func handleGet(ctx context.Context, client EC2ClientAPI, requestID string) (events.ALBTargetGroupResponse, error) {
 	log.Println("Starting DescribeInstances API call")
 	result, err := client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{})
 	if err != nil {
 		log.Printf("Error in DescribeInstances: %v", err)
-		return events.ALBTargetGroupResponse{
-			StatusCode:        500,
-			StatusDescription: "500 Internal Server Error",
-			Headers: map[string]string{
-				"Content-Type": "application/json",
-			},
-			Body:            fmt.Sprintf(`{"error": "%s"}`, err.Error()),
-			IsBase64Encoded: false,
-		}, err
+		return llib.CreateError500Response(requestID, err), err
 	}
 	log.Println("DescribeInstances API call completed successfully")
 
@@ -62,9 +59,6 @@ func handleGet(ctx context.Context, client EC2ClientAPI) (events.ALBTargetGroupR
 				"InstanceType": string(instance.InstanceType),
 				"State":        string(instance.State.Name),
 			}
-			if instance.PublicIpAddress != nil {
-				instanceInfo["PublicIpAddress"] = *instance.PublicIpAddress
-			}
 			if instance.PrivateIpAddress != nil {
 				instanceInfo["PrivateIpAddress"] = *instance.PrivateIpAddress
 			}
@@ -74,30 +68,20 @@ func handleGet(ctx context.Context, client EC2ClientAPI) (events.ALBTargetGroupR
 	log.Printf("Processed %d instances", len(instances))
 
 	log.Println("Marshaling response body")
-	body, err := json.Marshal(instances)
-	if err != nil {
-		log.Printf("Error marshaling response: %v", err)
-		return events.ALBTargetGroupResponse{
-			StatusCode:        500,
-			StatusDescription: "500 Internal Server Error",
-			Headers: map[string]string{
-				"Content-Type": "application/json",
-			},
-			Body:            fmt.Sprintf(`{"error": "Failed to marshal response: %s"}`, err.Error()),
-			IsBase64Encoded: false,
-		}, err
+	var body []byte
+	if len(instances) == 0 {
+		body = []byte("[]")
+	} else {
+		var err error
+		body, err = json.Marshal(instances)
+		if err != nil {
+			log.Printf("Error marshaling response: %v", err)
+			return llib.CreateError500Response(requestID, err), err
+		}
 	}
 
 	log.Println("Returning successful response")
-	return events.ALBTargetGroupResponse{
-		StatusCode:        200,
-		StatusDescription: "200 OK",
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-		Body:            string(body),
-		IsBase64Encoded: false,
-	}, nil
+	return llib.CreateSuccessResponse(requestID, string(body)), nil
 }
 
 func main() {

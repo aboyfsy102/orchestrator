@@ -6,3 +6,5 @@ infra/.terraform/*
 dist/*.zip
 
 src/deprecated/*
+
+.idea/
