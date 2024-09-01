@@ -71,13 +71,13 @@ resource "aws_lb_target_group" "lambda_describe_tg" {
 
 resource "aws_lb_target_group_attachment" "lambda_describe_tg_attachment" {
   target_group_arn = aws_lb_target_group.lambda_describe_tg.arn
-  target_id        = aws_lambda_function.lambda_describe.arn
+  target_id        = aws_lambda_function.lambda_describe_http.arn
 }
 
 resource "aws_lambda_permission" "allow_alb" {
   statement_id  = "AllowALBInvoke"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.lambda_describe.function_name
+  function_name = aws_lambda_function.lambda_describe_http.function_name
   principal     = "elasticloadbalancing.amazonaws.com"
   source_arn    = aws_lb_target_group.lambda_describe_tg.arn
 }
@@ -86,6 +86,40 @@ resource "aws_security_group" "sg_alb" {
   name        = "${var.project}-${data.aws_region.current.name}-sg"
   description = "Allow HTTP/HTTPS inbound traffic and all outbound traffic"
   vpc_id      = data.aws_vpc.default.id
+}
+
+resource "aws_lb_listener_rule" "fleet_rule" {
+  listener_arn = aws_lb_listener.front_end_https.arn
+  priority     = 200
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.lambda_fleet_http_tg.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/fleet*"]
+    }
+  }
+}
+
+resource "aws_lb_target_group" "lambda_fleet_http_tg" {
+  name        = "${var.project}-lambda-fleet-http-tg"
+  target_type = "lambda"
+}
+
+resource "aws_lb_target_group_attachment" "lambda_fleet_http_tg_attachment" {
+  target_group_arn = aws_lb_target_group.lambda_fleet_http_tg.arn
+  target_id        = aws_lambda_function.lambda_fleet_http.arn
+}
+
+resource "aws_lambda_permission" "allow_alb_fleet_http" {
+  statement_id  = "AllowALBInvokeFleetHttp"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.lambda_fleet_http.function_name
+  principal     = "elasticloadbalancing.amazonaws.com"
+  source_arn    = aws_lb_target_group.lambda_fleet_http_tg.arn
 }
 
 resource "aws_security_group_rule" "sg_alb_ingress_http" {

@@ -46,7 +46,7 @@ resource "aws_lambda_function" "lambda_describe_http" {
     }
   }
 
-    depends_on = [aws_cloudwatch_log_group.lambda_describe_http_logs]
+  depends_on = [aws_cloudwatch_log_group.lambda_describe_http_logs]
 }
 
 # IAM policy for the Lambda function

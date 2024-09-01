@@ -43,7 +43,11 @@ func handleRequest(ctx context.Context, request events.ALBTargetGroupRequest, cl
 }
 
 func handleGet(ctx context.Context, client EC2ClientAPI, requestID string) (events.ALBTargetGroupResponse, error) {
-
+	// TODO: Implement POST request handling
+	return events.ALBTargetGroupResponse{
+		StatusCode: 501,
+		Body:       `{"error": "Not implemented"}`,
+	}, nil
 }
 
 func handlePost(ctx context.Context, client EC2ClientAPI, requestID string) (events.ALBTargetGroupResponse, error) {

@@ -12,3 +12,8 @@ output "alb_https_url" {
   description = "The HTTPS URL of the Application Load Balancer"
   value       = "https://${aws_lb.alb.dns_name}"
 }
+
+output "rds_endpoint" {
+  description = "The endpoint of the RDS instance"
+  value       = aws_db_instance.rds.endpoint
+}
